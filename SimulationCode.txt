@@ -1,0 +1,120 @@
+#include <LiquidCrystal.h>
+#define sensorPin A0
+#define pump 9
+#define pumpr A2
+#define po A1
+#define swi 6
+#define d4 10
+#define d5 11
+#define d6 12
+#define d7 13
+#define rs 7
+#define en 8
+#define trig 4
+#define echo 5
+#define green 3
+#define cold A3
+#define med A4
+#define hot A5
+#define PIN_SWITCH 6
+#define BUZZ 2
+char incoming_value;
+LiquidCrystal lcd(rs,en,d4,d5,d6,d7);
+#include <SoftwareSerial.h> 
+
+
+
+void setup()
+{ 
+  Serial.begin(9600);
+  pinMode(BUZZ,OUTPUT);
+  pinMode(pump, OUTPUT);
+  pinMode(pumpr, OUTPUT);
+  pinMode(swi, INPUT);
+  pinMode(echo,INPUT);
+  pinMode(trig,OUTPUT);
+  Serial.begin(9600);
+  lcd.begin(16, 2);
+}
+
+void loop()
+{
+  int vmv = analogRead(sensorPin);
+  float vout = vmv * 5.0;
+  vout /= 1024.0;
+  float tempc = (vout - 0.5) * 100 ;
+  Serial.print(tempc); Serial.println(" C");
+  lcd.setCursor(0, 0);
+  lcd.print("Temperature");
+  lcd.setCursor(0, 1);
+  lcd.print(tempc);
+  float pot = map(analogRead(po), 0, 1024, 25, 64);
+  float potl = map(analogRead(po), 0, 1024, 0, 100);
+  if(potl<=33.33){
+    digitalWrite(cold,255);
+    digitalWrite(hot,0);
+    digitalWrite(med,0);
+  }
+  else if(potl>33.33 && potl<=66.67){
+    digitalWrite(med,255);
+    digitalWrite(cold,0);
+    digitalWrite(hot,0);
+  }
+  else{
+    digitalWrite(hot,255);
+    digitalWrite(med,0);
+    digitalWrite(cold,0);
+  }
+  Serial.println(pot);
+  int swit = digitalRead(swi);
+  digitalWrite(trig,HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trig,LOW);
+  float duration=pulseIn(echo,HIGH);
+  float distance=0.01715*duration;
+  Serial.println(distance);
+  
+  while (swit == HIGH || PIN_SWITCH == HIGH) {
+    while (tempc >= pot) {
+      //cooler on
+      //tempc = pot;
+      if (distance<330) {
+        //cooler off
+        digitalWrite(BUZZ,255);
+        digitalWrite(pump, HIGH);
+        digitalWrite(pumpr, LOW);
+        digitalWrite(green, HIGH);
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("Temperature");
+        lcd.setCursor(0, 1);
+        lcd.print(tempc);
+        delay(5000);
+      }
+      digitalWrite(BUZZ,LOW);
+      digitalWrite(pump,LOW);
+      digitalWrite(green,LOW);
+      break;
+    }
+    while (tempc < pot) {
+      //heater ON
+      //tempc = pot;
+      if (distance<330) {
+        //heater OFF
+        digitalWrite(pump, LOW);
+        digitalWrite(pumpr, HIGH);
+        digitalWrite(green, HIGH);
+        lcd.clear();
+        lcd.setCursor(0, 0);
+      lcd.print("Temperature");
+        lcd.setCursor(0, 1);
+        lcd.print(tempc);
+        delay(5000);
+      }
+      digitalWrite(pump,LOW);
+      digitalWrite(green,LOW);
+      break;
+    }
+    break;
+  }
+}	
